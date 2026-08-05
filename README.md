@@ -152,6 +152,7 @@ python app.py
 ```
 heybox-bot-web/
 ├── app.py                      # Flask 主入口 + API 路由
+├── LICENSE                     # MIT 开源协议
 ├── requirements.txt            # Python 依赖
 ├── config-example.json         # 配置文件示例
 ├── 启动机器人-multi.bat         # Windows 启动脚本
@@ -207,4 +208,6 @@ heybox-bot-web/
 
 ---
 
-本项目仅供学习交流使用。
+## 开源协议
+
+本项目基于 [MIT License](LICENSE) 开源，仅供学习交流使用。
