@@ -1,0 +1,5 @@
+flask==3.1.0
+flask-cors==5.0.1
+requests==2.32.3
+Pillow==11.0.0
+tavily-python==0.5.0

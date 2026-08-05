@@ -1,0 +1,84 @@
+{
+  "bot": {
+    "mode": "white_list",
+    "admin_id": "",
+    "test_steam_id": "",
+    "init_wait_time": 10,
+    "max_wait_time": 60,
+    "increment": 10,
+    "max_post_image_num": 3,
+    "max_comment_image_num": 3,
+    "white_list": [],
+    "frequency": 3,
+    "max_messages_per_round": 3,
+    "parallel": false,
+    "parallel_count": 5,
+    "multi_account": false,
+    "standby_mode": false,
+    "standby_slot": "",
+    "auto_disable_alt_on_risk": true
+  },
+  "llm": {
+    "vendor": "",
+    "api_key": "",
+    "base_url": "",
+    "api_path": "/chat/completions",
+    "model": "",
+    "max_tokens": 5000,
+    "web_search": false,
+    "show_reasoning": false,
+    "vendor_keys": {}
+  },
+  "llm_search": {
+    "vendor": "",
+    "api_key": "",
+    "base_url": "",
+    "api_path": "/chat/completions",
+    "model": "",
+    "max_tokens": 5000,
+    "vendor_keys": {}
+  },
+  "llm_baidu_search": {
+    "baidu_api_key": "",
+    "tavily_api_key": "",
+    "model": "deepseek-v3",
+    "provider": "baidu"
+  },
+  "llm_search_judge": {
+    "enabled": false,
+    "vendor": "",
+    "api_key": "",
+    "base_url": "",
+    "model": "",
+    "max_tokens": 200,
+    "vendor_keys": {}
+  },
+  "prompt": {
+    "content": ""
+  },
+  "steam_prompt": {
+    "content": ""
+  },
+  "steam_recommend_prompt": {
+    "content": ""
+  },
+  "llm_steam": {
+    "vendor": "",
+    "api_key": "",
+    "base_url": "",
+    "model": "",
+    "max_tokens": 5000,
+    "vendor_keys": {}
+  },
+  "steam": {
+    "enabled": false,
+    "steam_api_key": "",
+    "top_games_count": 20,
+    "auto_scrape": true
+  },
+  "log": {
+    "path": "data/",
+    "level": "INFO",
+    "max_day": 7
+  }
+}

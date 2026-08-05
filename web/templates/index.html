@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小黑盒AI自动回复 · HeyBox AI 机器人</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- ===== 顶部导航 ===== -->
+  <nav class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="{{ url_for('static', filename='img/heybox_logo.png') }}" alt="小黑盒">
+      <div class="brand-text">
+        <span class="brand-name">小黑盒AI自动回复</span>
+        <span class="brand-sub">HEYBOX AI AUTO REPLY</span>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="user-chip" id="userChip">
+        <span class="user-chip-dot offline"></span>
+        <span class="user-chip-text">未登录</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== 应用外壳 ===== -->
+  <div class="app-shell">
+
+    <!-- ===== 侧边栏 ===== -->
+    <aside class="sidebar" id="sidebar">
+
+      <!-- 任务控制中心 -->
+      <section class="mission-card" id="missionCard">
+        <div class="scan-line" aria-hidden="true"></div>
+        <div class="mission-card-header">
+          <div class="mission-status">
+            <span class="status-pulse offline" id="statusPulse"></span>
+            <span class="status-label" id="statusLabel">离线</span>
+          </div>
+          <span class="mission-badge" id="missionBadge">STANDBY</span>
+        </div>
+
+        <div class="mission-user" id="missionUser">
+          <div class="mission-user-avatar" id="missionUserAvatar"></div>
+          <div class="mission-user-info">
+            <div class="mission-user-name" id="missionUserName">未登录</div>
+            <div class="mission-user-meta" id="missionUserMeta">点击登录小黑盒账号</div>
+          </div>
+        </div>
+
+        <div class="mission-actions" id="missionActions">
+          <button class="mission-action-link" id="btnCheckStatus" onclick="handleCheckLogin()" style="display:none">检查状态</button>
+          <button class="mission-action-link" id="btnLogout" onclick="handleLogout()" style="display:none">退出登录</button>
+          <button class="mission-action-link" id="btnResetConfig" onclick="resetAllConfig()">重置配置</button>
+        </div>
+
+        <div class="mission-countdown" id="missionCountdown" style="display:none">
+          <span class="countdown-label">下次检测</span>
+          <span class="countdown-value" id="countdownValue">--</span>
+        </div>
+
+        <button class="mission-button" id="missionButton" onclick="onMissionButtonClick()">
+          <span class="mission-button-icon" id="missionButtonIcon">▶</span>
+          <span class="mission-button-text" id="missionButtonText">启动机器人</span>
+        </button>
+      </section>
+
+      <!-- 快速统计 -->
+      <section class="quick-stats" id="quickStats">
+        <div class="qstat" onclick="switchLeftMode('dashboard')">
+          <span class="qstat-value" id="qsTrigger">0</span>
+          <span class="qstat-label">触发</span>
+        </div>
+        <div class="qstat" onclick="switchLeftMode('dashboard')">
+          <span class="qstat-value" id="qsSuccess">0</span>
+          <span class="qstat-label">成功</span>
+        </div>
+        <div class="qstat" onclick="switchLeftMode('dashboard')">
+          <span class="qstat-value" id="qsFail">0</span>
+          <span class="qstat-label">失败</span>
+        </div>
+        <div class="qstat" onclick="switchLeftMode('dashboard')">
+          <span class="qstat-value" id="qsSearch">0</span>
+          <span class="qstat-label">搜索</span>
+        </div>
+      </section>
+
+      <!-- 配置 / 仪表盘 视图容器 -->
+      <div class="sidebar-content" id="sidebarContent">
+        <!-- 视图切换 -->
+        <div class="mode-switch">
+          <button class="mode-btn active" id="btnConfigView" onclick="switchLeftMode('config')">配置</button>
+          <button class="mode-btn" id="btnDashboardView" onclick="switchLeftMode('dashboard')">仪表盘</button>
+        </div>
+
+        <!-- 配置视图 -->
+        <div class="config-container" id="configView">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-bot">机器人</button>
+            <button class="tab-btn" data-tab="tab-llm">AI 模型</button>
+            <button class="tab-btn" data-tab="tab-prompt">提示词</button>
+            <button class="tab-btn" data-tab="tab-accounts">账号管理</button>
+          </div>
+
+          <!-- 机器人配置 -->
+          <div class="tab-content active" id="tab-bot">
+            <div class="section-title">回复策略</div>
+
+            <div class="form-group">
+              <label>访问控制模式</label>
+              <select id="botMode" onchange="onModeChange()">
+                <option value="white_list">白名单模式</option>
+                <option value="frequency">频率限制模式</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="whitelistGroup">
+              <label>白名单（每行一个用户 ID）</label>
+              <textarea id="whiteList" rows="4" placeholder="输入用户 ID，每行一个&#10;例如：&#10;123456&#10;789012"></textarea>
+              <div class="help-text">启用后只有在白名单中的用户 ID 才能触发 AI 回复</div>
+            </div>
+
+            <div class="form-group" id="frequencyGroup" style="display:none">
+              <label>每用户每小时最大调用次数</label>
+              <input type="number" id="frequencyLimit" value="3" min="1">
+              <div class="help-text">超出调用次数的用户将被忽略</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="form-row">
+              <label class="form-label">初始回复间隔</label>
+              <input type="number" id="initWaitTime" value="10" min="0" step="1" style="width:90px">
+              <span class="help-text" style="flex:1">秒</span>
+            </div>
+            <div class="form-row">
+              <label class="form-label">最大回复间隔</label>
+              <input type="number" id="maxWaitTime" value="60" min="0" step="1" style="width:90px">
+              <span class="help-text" style="flex:1">秒</span>
+            </div>
+            <div class="form-row">
+              <label class="form-label">递增数值</label>
+              <input type="number" id="increment" value="10" min="0" step="1" style="width:90px">
+              <span class="help-text" style="flex:1">秒</span>
+            </div>
+            <div class="form-row">
+              <label class="form-label">每轮最大消息数</label>
+              <input type="number" id="maxMessagesPerRound" value="3" min="1" step="1" style="width:90px">
+              <span class="help-text" style="flex:1">超出移到下一轮</span>
+            </div>
+
+            <div class="toggle-row" style="margin-top:12px;">
+              <span class="toggle-label">并行处理</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="parallelMode" onchange="onParallelToggle()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div id="parallelSection" style="display:none;padding-left:12px;margin-bottom:12px;">
+              <div class="form-row" style="margin-bottom:6px;">
+                <label class="form-label">并行线程数</label>
+                <input type="number" id="parallelCount" value="5" min="1" max="20" step="1" style="width:70px" onchange="saveParallelSilent()">
+                <span class="help-text" style="flex:1">同时调用 AI 的线程数（1-20）</span>
+              </div>
+            </div>
+            <div class="help-text" style="margin-bottom:12px">开启后一轮内多条消息同时调用 AI（适合高并发场景，注意 API 并发限制）</div>
+
+            <div class="divider"></div>
+
+            <div class="toggle-row" style="margin-top:12px;">
+              <span class="toggle-label">多账号交叉回复</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="multiAccount" onchange="onMultiAccountToggle()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="help-text" style="margin-bottom:12px">开启后主号与启用的副号轮转回复；副号在"账号管理"标签页中维护</div>
+
+            <div id="standbySection" style="border-top:1px solid var(--border); padding-top:12px; margin-top:12px;">
+              <div class="toggle-row" style="padding:0;">
+                <span class="toggle-label">替身模式（副号替代回复）</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="standbyMode" onchange="onStandbyToggle()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="help-text" style="margin-top:4px;margin-bottom:8px;">
+                主号被封禁/限流时使用：主号继续接收 @ 但暂停回复。交叉回复开启时，替身与其他副号一起轮转回复；关闭时仅替身回复。
+              </div>
+              <div id="standbySlotGroup" style="display:none;margin-bottom:8px;">
+                <label style="font-size:12px;">选择替身账号</label>
+                <select id="standbySlot" onchange="onStandbySlotChange()" style="width:100%;margin-top:4px;">
+                  <option value="">-- 请选择替身 --</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="toggle-row" style="margin-top:12px;">
+              <span class="toggle-label">回复后自动点赞</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autoLike">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="help-text" style="margin-bottom:12px">回复成功后，由执行回复的同一账号为触发内容点赞：评论 @ 赞该评论，发帖 @ 赞该帖子；点赞失败不影响回复</div>
+
+            <button class="btn btn-primary" onclick="saveBotConfig()" style="width:100%;margin-top:8px;">保存机器人配置</button>
+          </div>
+
+          <!-- AI 模型配置 -->
+          <div class="tab-content" id="tab-llm">
+            <div class="section-title">主回复模型</div>
+            <div class="form-group">
+              <label>AI 模型提供商</label>
+              <select id="vendorSelect" onchange="onVendorChange()">
+                <option value="">-- 请选择提供商 --</option>
+              </select>
+              <div class="help-text">选择后自动填充默认 Base URL 和模型名称</div>
+            </div>
+
+            <div class="form-group">
+              <label>API Key</label>
+              <div class="input-group">
+                <input type="password" id="apiKey" placeholder="输入 API Key">
+                <button class="btn btn-secondary btn-sm" onclick="toggleApiKey()" title="显示/隐藏">显</button>
+                <button class="btn btn-secondary btn-sm" onclick="copyApiKey()" title="复制">复</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Base URL</label>
+              <input type="text" id="baseUrl" placeholder="https://api.example.com/v1">
+            </div>
+
+            <div class="form-group">
+              <label>API 路径</label>
+              <input type="text" id="apiPath" placeholder="/chat/completions">
+              <div class="help-text">默认值 /chat/completions，可手动覆盖</div>
+            </div>
+
+            <div class="form-group">
+              <label>最大 Token 上限</label>
+              <input type="number" id="maxTokens" value="5000" min="1" step="1">
+              <div class="help-text">每条回复的最大 token 数量，默认 5000</div>
+            </div>
+
+            <div class="form-group">
+              <label>模型名称</label>
+              <select id="modelSelect">
+                <option value="">-- 请先获取模型列表 --</option>
+              </select>
+              <div class="help-text">也可手动在下方输入框中输入模型名称</div>
+            </div>
+
+            <div class="form-group">
+              <input type="text" id="modelInput" placeholder="或手动输入模型名称">
+            </div>
+
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary" onclick="saveLLMConfig()" style="flex:1">保存 AI 配置</button>
+              <button class="btn btn-secondary" onclick="fetchModels()">获取模型列表</button>
+            </div>
+            <button class="btn btn-secondary" onclick="testLLM()" style="width:100%;margin-top:8px;">测试连接</button>
+
+            <div class="divider"></div>
+
+            <div class="toggle-row">
+              <span class="toggle-label">流式思维链展示</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="showReasoning" onchange="saveReasoningSilent()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="help-text" style="margin-bottom:12px">开启后，支持推理的模型将流式显示思考内容</div>
+
+            <div class="divider"></div>
+            <div class="section-title">联网搜索</div>
+
+            <div class="toggle-row">
+              <span class="toggle-label">联网搜索</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="webSearch" onchange="onWebSearchToggle()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="help-text" style="margin-bottom:12px">开启后，AI 回复前自动搜索相关内容</div>
+
+            <div id="searchModelSection" style="display:none; border:1px solid var(--blue); border-radius: var(--radius-md); padding:12px; margin-bottom:16px; background:var(--bg-elevated);">
+              <h4 style="font-size:13px; color:var(--blue); margin-bottom:10px;">搜索关键词生成模型</h4>
+              <div class="help-text" style="margin-bottom:10px;">AI 提取关键词后使用外部搜索引擎。留空则继承主模型配置。</div>
+
+              <div class="form-group">
+                <label>提供商</label>
+                <select id="searchVendorSelect" onchange="onSearchVendorChange()">
+                  <option value="">-- 继承主模型 --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>API Key</label>
+                <div class="input-group">
+                  <input type="password" id="searchApiKey" placeholder="继承主模型 API Key">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleApiKey('searchApiKey')" title="显示/隐藏">显</button>
+                  <button class="btn btn-secondary btn-sm" onclick="copyApiKey('searchApiKey')" title="复制">复</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Base URL</label>
+                <input type="text" id="searchBaseUrl" placeholder="继承主模型 Base URL">
+              </div>
+
+              <div class="form-group">
+                <label>模型名称</label>
+                <input type="text" id="searchModelInput" placeholder="继承主模型">
+              </div>
+
+              <div class="form-group">
+                <label>最大 Token</label>
+                <input type="number" id="searchMaxTokens" value="5000" min="1" step="1">
+              </div>
+
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="saveSearchConfig()" style="flex:1">保存搜索配置</button>
+                <button class="btn btn-secondary btn-sm" onclick="fetchSearchModels()" style="flex:1">获取模型列表</button>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="testSearchLLM()" style="width:100%;margin-top:8px;">测试搜索连接</button>
+
+              <div class="form-group" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+                <label>搜索 API 提供商</label>
+                <select id="searchProviderSelect" onchange="onSearchProviderChange()">
+                  <option value="baidu">百度千帆 AI 搜索</option>
+                  <option value="tavily">Tavily Search</option>
+                  <option value="auto">自动故障转移（百度 → Tavily）</option>
+                </select>
+                <div style="margin-top:6px;display:flex;gap:6px;">
+                  <a href="https://console.bce.baidu.com/ai-search/home" target="_blank" class="btn btn-secondary btn-sm" id="btnBaiduConsole" style="flex:1">百度千帆控制台</a>
+                  <a href="https://app.tavily.com" target="_blank" class="btn btn-secondary btn-sm" id="btnTavilyConsole" style="flex:1;display:none">Tavily 控制台</a>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="saveSearchAPIOnly()" style="flex:1">确定</button>
+                <button class="btn btn-secondary btn-sm" onclick="testSearchAPI()" style="flex:1">测试搜索</button>
+              </div>
+              <div class="form-group" id="baiduKeyGroup">
+                <label>百度千帆 API Key</label>
+                <div class="input-group">
+                  <input type="password" id="baiduApiKey" placeholder="输入百度千帆 API Key">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleApiKey('baiduApiKey')" title="显示/隐藏">显</button>
+                  <button class="btn btn-secondary btn-sm" onclick="copyApiKey('baiduApiKey')" title="复制">复</button>
+                </div>
+              </div>
+              <div class="form-group" id="tavilyKeyGroup" style="display:none">
+                <label>Tavily API Key</label>
+                <div class="input-group">
+                  <input type="password" id="tavilyApiKey" placeholder="输入 Tavily API Key">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleApiKey('tavilyApiKey')" title="显示/隐藏">显</button>
+                  <button class="btn btn-secondary btn-sm" onclick="copyApiKey('tavilyApiKey')" title="复制">复</button>
+                </div>
+              </div>
+              <div class="form-group" id="baiduModelGroup">
+                <label>搜索模型</label>
+                <select id="baiduModelSelect">
+                  <option value="deepseek-v3">DeepSeek V3</option>
+                  <option value="deepseek-r1">DeepSeek R1</option>
+                  <option value="ernie-4.5-turbo-32k">ERNIE 4.5 Turbo 32K</option>
+                  <option value="ernie-4.5-turbo-128k">ERNIE 4.5 Turbo 128K</option>
+                </select>
+              </div>
+
+              <div style="margin-top:16px;border:1px solid var(--amber);border-radius:var(--radius-md);padding:12px;background:var(--bg-elevated);">
+                <div class="toggle-row" style="padding:0;">
+                  <span class="toggle-label" style="color:var(--amber);">联网搜索需求判断</span>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="searchJudgeEnabled" onchange="onSearchJudgeToggle()">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="help-text" style="margin-top:4px;margin-bottom:10px;">开启后，先由 AI 判断用户是否需要联网搜索，不需要则跳过搜索直接回复</div>
+
+                <div id="searchJudgeSection" style="display:none;">
+                  <div class="form-group">
+                    <label>提供商</label>
+                    <select id="judgeVendorSelect" onchange="onJudgeVendorChange()">
+                      <option value="">-- 请选择提供商 --</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>API Key</label>
+                    <div class="input-group">
+                      <input type="password" id="judgeApiKey" placeholder="输入 API Key">
+                      <button class="btn btn-secondary btn-sm" onclick="toggleApiKey('judgeApiKey')" title="显示/隐藏">显</button>
+                      <button class="btn btn-secondary btn-sm" onclick="copyApiKey('judgeApiKey')" title="复制">复</button>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Base URL</label>
+                    <input type="text" id="judgeBaseUrl" placeholder="https://open.bigmodel.cn/api/paas/v4">
+                  </div>
+
+                  <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" id="judgeModelInput" placeholder="输入模型名称">
+                  </div>
+
+                  <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="saveSearchJudgeConfig()" style="flex:1">保存判断配置</button>
+                    <button class="btn btn-secondary btn-sm" onclick="fetchJudgeModels()" style="flex:1">获取模型列表</button>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" onclick="testJudgeLLM()" style="width:100%;margin-top:8px;">测试判断连接</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+            <div class="section-title">Steam 库存评价</div>
+
+            <div class="toggle-row">
+              <span class="toggle-label">AI 评价 Steam 库存</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="steamEnabled" onchange="onSteamToggle()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="help-text" style="margin-bottom:12px">开启后检测"评价库存+SteamID"消息，爬取游戏库并生成评价</div>
+
+            <div id="steamSection" style="display:none; border:1px solid var(--border); border-radius: var(--radius-md); padding:12px; margin-bottom:16px; background:var(--bg-elevated);">
+              <h4 style="font-size:13px; color:var(--accent); margin-bottom:10px;">AI 评价库存配置</h4>
+              <div class="help-text" style="margin-bottom:10px;">检测到"评价库存+Steam AccountID"消息时自动爬取游戏库并评价。留空则继承主模型配置。</div>
+
+              <div class="form-group">
+                <label>提供商</label>
+                <select id="steamVendorSelect" onchange="onSteamVendorChange()">
+                  <option value="">-- 继承主模型 --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>API Key</label>
+                <div class="input-group">
+                  <input type="password" id="steamLLMApiKey" placeholder="继承主模型 API Key">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleApiKey('steamLLMApiKey')" title="显示/隐藏">显</button>
+                  <button class="btn btn-secondary btn-sm" onclick="copyApiKey('steamLLMApiKey')" title="复制">复</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Base URL</label>
+                <input type="text" id="steamLLMBaseUrl" placeholder="继承主模型 Base URL">
+              </div>
+
+              <div class="form-group">
+                <label>模型名称</label>
+                <input type="text" id="steamLLMModel" placeholder="继承主模型">
+              </div>
+
+              <div class="form-group">
+                <label>最大 Token</label>
+                <input type="number" id="steamLLMMaxTokens" value="5000" min="1" step="1">
+              </div>
+
+              <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button class="btn btn-secondary btn-sm" onclick="saveSteamLLMConfig()" style="flex:1">保存模型</button>
+                <button class="btn btn-secondary btn-sm" onclick="fetchSteamModels()" style="flex:1">获取模型</button>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="testSteamLLM()" style="width:100%;margin-bottom:12px;">测试连接</button>
+
+              <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <div class="help-text" style="margin-bottom:8px;">Steam API 配置：</div>
+                <div class="form-group">
+                  <label>Steam Web API Key</label>
+                  <input type="password" id="steamApiKey" placeholder="输入 Steam Web API Key">
+                  <div class="help-text"><a href="https://steamcommunity.com/dev/apikey" target="_blank" style="color:var(--blue)">获取 Steam Web API Key →</a></div>
+                </div>
+
+                <div class="form-group">
+                  <label>展示游戏数量</label>
+                  <input type="number" id="steamTopGames" value="20" min="1" max="50">
+                </div>
+
+                <button class="btn btn-secondary btn-sm" onclick="saveSteamConfig()" style="width:100%">保存 Steam API 配置</button>
+
+                <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+                  <div class="section-title">游戏榜单管理</div>
+                  <div class="help-text" style="margin-bottom:10px;">Steam 游戏榜单用于增强库存评价的推荐与标签补充。</div>
+
+                  <div class="toggle-row">
+                    <span class="toggle-label">自动爬取游戏榜单</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="steamAutoScrape" onchange="onSteamAutoScrapeToggle()">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="help-text" style="margin-bottom:12px">程序自检完成后，若开启则自动在后台更新榜单数据</div>
+
+                  <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <button class="btn btn-secondary btn-sm" onclick="triggerSteamScrape()" style="flex:1">立即爬取榜单</button>
+                    <button class="btn btn-secondary btn-sm" onclick="refreshSteamScrapeStatus()" style="flex:1">刷新状态</button>
+                  </div>
+
+                  <div class="fold" id="steamScrapeStatusFold">
+                    <div class="fold-header" onclick="toggleFold(this)">
+                      <span class="fold-arrow" aria-expanded="false"></span>
+                      <span class="fold-title">Steam 游戏榜单状态</span>
+                    </div>
+                    <div class="fold-body" style="display:none">
+                      <div class="scrape-status-panel" id="steamScrapeStatusPanel">
+                        <div class="scrape-status-empty" id="steamScrapeStatusEmpty">点击刷新状态查看榜单时效</div>
+                        <div class="scrape-status-list" id="steamScrapeStatusList" style="display:none"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 提示词配置 -->
+          <div class="tab-content" id="tab-prompt">
+            <div class="section-title">AI 系统提示词</div>
+            <div class="form-group">
+              <textarea id="promptContent" rows="14" placeholder="输入自定义提示词..."></textarea>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary" onclick="savePrompt()" style="flex:1">保存提示词</button>
+              <button class="btn btn-secondary" onclick="resetPrompt()">恢复默认</button>
+            </div>
+            <div style="margin-top:10px;text-align:center;">
+              <a href="https://always200.com/" target="_blank" class="btn btn-ghost btn-sm" style="color:var(--blue)">提示词优化工具 →</a>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="section-title">Steam 库存评价提示词</div>
+            <div class="form-group">
+              <textarea id="steamPromptContent" rows="10" placeholder="输入自定义 Steam 评价提示词..." style="font-size:11px;line-height:1.8"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+              <button class="btn btn-primary" onclick="saveSteamPrompt()" style="flex:1">保存提示词</button>
+              <button class="btn btn-secondary" onclick="resetSteamPrompt()">恢复默认</button>
+            </div>
+
+            <div class="section-title">Steam 推荐游戏提示词</div>
+            <div class="form-group">
+              <textarea id="steamRecPromptContent" rows="10" placeholder="输入自定义 Steam 推荐提示词..." style="font-size:11px;line-height:1.8"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary" onclick="saveSteamRecPrompt()" style="flex:1">保存提示词</button>
+              <button class="btn btn-secondary" onclick="resetSteamRecPrompt()">恢复默认</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="form-group" style="margin-top:20px;">
+              <button class="btn btn-danger" onclick="resetAllConfig()" style="width:100%">重置所有配置</button>
+            </div>
+          </div>
+
+          <!-- 账号管理 -->
+          <div class="tab-content" id="tab-accounts">
+            <div class="section-title">副账号管理</div>
+            <div class="help-text" style="margin-bottom:10px;">添加小黑盒副号：可用于多账号交叉回复轮转、作为替身账号，也可与主号切换。降低单账号发布频率，规避风控。</div>
+            <button class="btn btn-primary btn-sm" onclick="showAltLoginModal()" style="width:100%;margin-bottom:8px;">添加副号（扫码登录）</button>
+            <div id="altAccountList" style="font-size:12px;line-height:1.6;color:var(--text-secondary);">暂无副号，请添加</div>
+
+            <div class="divider"></div>
+
+            <div class="toggle-row" style="padding:0;">
+              <span class="toggle-label">风控自动禁用副号</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autoDisableAltOnRisk" checked onchange="onAutoDisableChange()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="help-text">副号触发风控（relogin）时自动禁用，不再参与回复</div>
+          </div>
+        </div>
+
+        <!-- 仪表盘视图 -->
+        <div class="dashboard-sidebar" id="dashboardView" style="display:none">
+          <div class="uptime-row">
+            <span>运行时间</span>
+            <span id="statUptime">--</span>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="statTrigger">0</div>
+              <div class="stat-label">触发回复次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statSuccess">0</div>
+              <div class="stat-label">回复成功次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statFail">0</div>
+              <div class="stat-label">回复失败次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statSearch">0</div>
+              <div class="stat-label">调用搜索次数</div>
+            </div>
+          </div>
+
+          <div class="dashboard-section">
+            <div class="section-title">Token 消耗</div>
+            <div class="token-total" id="statTotalTokens">0</div>
+            <div class="model-list" id="modelStatsList"></div>
+          </div>
+
+          <div class="dashboard-section" id="steamRatingSection" style="display:none">
+            <div class="section-title">库存评级分布</div>
+            <canvas id="steamRatingChart" width="300" height="200" style="width:100%;max-width:300px;display:block;margin:0 auto"></canvas>
+            <div class="model-list" id="steamRatingList"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== 终端日志主区域 ===== -->
+    <main class="terminal" id="terminal">
+      <header class="terminal-header">
+        <div class="terminal-header-left">
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">实时事件流</span>
+          <span class="terminal-status" id="terminalStatus">等待连接</span>
+        </div>
+        <div class="terminal-tools">
+          <input type="text" id="logFilter" placeholder="筛选标签..." oninput="onLogFilter()">
+          <button class="btn btn-ghost btn-sm" onclick="clearLogs()">清空</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportLogs()">导出</button>
+        </div>
+      </header>
+      <div class="terminal-body" id="logContainer">
+        <div class="log-entry log-info">
+          <span class="log-prompt">$</span>
+          <span class="log-msg">系统已启动，正在连接日志服务...</span>
+          <span class="log-cursor"></span>
+        </div>
+      </div>
+      <div class="terminal-footer">
+        <span class="terminal-footer-item" title="点击复制" onclick="copyServerAddr()">
+          <span class="terminal-footer-label">SERVER</span>
+          <span class="terminal-footer-value" id="serverAddr">{{ request.host_url or 'http://127.0.0.1:5500' }}</span>
+        </span>
+      </div>
+    </main>
+
+    <!-- ===== 对话任务面板（日志右侧，可折叠） ===== -->
+    <aside class="task-panel" id="taskPanel">
+      <button class="task-panel-toggle" id="taskPanelToggle" onclick="toggleTaskPanel()" title="折叠任务面板">▶</button>
+      <div class="task-panel-inner" id="taskPanelInner">
+        <header class="task-panel-header">
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">对话任务</span>
+          <span class="terminal-status" id="taskPanelCount">0</span>
+        </header>
+        <div class="task-filters">
+          <input type="text" id="taskFilterKeyword" placeholder="关键词（提问 / 回复内容）" onkeydown="if(event.key==='Enter')loadTasks(true)">
+          <div class="task-filters-row">
+            <input type="text" id="taskFilterUid" placeholder="用户 UID" onkeydown="if(event.key==='Enter')loadTasks(true)">
+            <input type="date" id="taskFilterDate" onchange="loadTasks(true)" title="按任务创建日期筛选">
+          </div>
+          <div class="task-filters-row">
+            <select id="taskFilterStatus" onchange="loadTasks(true)">
+              <option value="">全部状态</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="resetTaskFilters()">重置</button>
+            <button class="btn btn-primary btn-sm" onclick="loadTasks(true)" style="flex:1">搜索</button>
+          </div>
+        </div>
+        <div class="task-list" id="taskList">
+          <div class="task-empty">暂无任务，等待用户 @ 触发</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 模态窗口容器 -->
+  <div id="modalContainer"></div>
+
+  <!-- 本地二维码生成库（qrcode-generator, MIT），避免 qr_url 外发给第三方服务 -->
+  <script src="{{ url_for('static', filename='js/vendor/qrcode.min.js') }}"></script>
+  {% if api_token is defined %}
+  <script>window.__API_TOKEN__ = {{ api_token|tojson }};</script>
+  {% else %}
+  <script>window.__API_TOKEN__ = null;</script>
+  {% endif %}
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

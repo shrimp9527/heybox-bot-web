@@ -1,0 +1,20 @@
+# 数据目录（包含敏感配置、会话令牌、日志）
+data/*
+!data/art.txt
+!data/steam_local_db.json
+
+# IDE
+.vscode/
+.idea/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 演示/测试文件
+heybox-bot-web-demo/
+
+# 系统文件
+desktop.ini
+Thumbs.db
