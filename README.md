@@ -84,8 +84,8 @@
 
 ### 方式二：克隆源码
 ```bash
-git clone https://github.com/shrimp9527/heybox-bot-web-multi-redesign.git
-cd heybox-bot-web-multi-redesign
+git clone https://github.com/shrimp9527/heybox-bot-web.git
+cd heybox-bot-web
 ```
 
 ### 1. 环境要求
@@ -155,7 +155,7 @@ python app.py
 ## 项目结构
 
 ```
-heybox-bot-web-multi-redesign/
+heybox-bot-web/
 ├── app.py                      # Flask 主入口 + API 路由
 ├── requirements.txt            # Python 依赖
 ├── config-example.json         # 配置文件示例
