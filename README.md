@@ -84,7 +84,7 @@
 
 ### 方式二：克隆源码
 ```bash
-git clone <仓库地址>
+git clone https://github.com/shrimp9527/heybox-bot-web-multi-redesign.git
 cd heybox-bot-web-multi-redesign
 ```
 
